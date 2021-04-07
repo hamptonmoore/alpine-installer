@@ -1,0 +1,32 @@
+#!/usr/bin/python3
+import sys, requests, tarfile, io
+
+if len(sys.argv) != 2:
+	print('Proper usage is "alpine-installer [APK URL | Package Name]"')
+	exit()
+
+def download(url):
+	print(url)
+	apk = requests.get(url)
+	apk_tar = io.BytesIO(apk.content)
+	tar = tarfile.open(fileobj=apk_tar)
+	files = []
+	print("Which file(s) do you want, seperate indexes by spaces")
+	for member in tar.getmembers():
+		print(f'[{len(files)}] {member}')
+		files.append(member)
+	
+	get = input("File indexes: ").split()
+
+	for file in get:
+		f = open(tar.getnames()[int(file)].split("/")[-1], "wb")
+		f.write(tar.extractfile(files[int(file)]).read())
+		f.close()
+
+
+arg=sys.argv[1]
+if arg.find("http") != -1 and arg.find(":") != -1:
+	print(f'Detected {arg} to be a URL, downloading now')
+	download(arg)
+
+
