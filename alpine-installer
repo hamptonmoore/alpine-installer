@@ -1,12 +1,13 @@
 #!/usr/bin/python3
 import sys, requests, tarfile, io
+arch="x86_64"
 
 if len(sys.argv) != 2:
 	print('Proper usage is "alpine-installer [APK URL | Package Name]"')
 	exit()
 
 def download(url):
-	print(url)
+	print(f'Downloading {url}')
 	apk = requests.get(url)
 	apk_tar = io.BytesIO(apk.content)
 	tar = tarfile.open(fileobj=apk_tar)
@@ -22,11 +23,31 @@ def download(url):
 		f = open(tar.getnames()[int(file)].split("/")[-1], "wb")
 		f.write(tar.extractfile(files[int(file)]).read())
 		f.close()
+        
 
 
 arg=sys.argv[1]
 if arg.find("http") != -1 and arg.find(":") != -1:
 	print(f'Detected {arg} to be a URL, downloading now')
 	download(arg)
+else:
+    search=arg
+    print(f'Detected {arg} to be a search term, downloading indexes now')
+    indexes_file = open("/etc/apk/repositories", "r")
+    indexes = indexes_file.read().split("\n")[:-1] 
+    indexes_file.close()
+    matches = []
+    for index in indexes:
+        apks_file = requests.get(f'{index}/{arch}/')
+        apks = apks_file.text.split("\n")[5:-3]
+        for apk in apks:
+            name=apk.split("</a>")[0].split('">')[1]
 
+            if name.find(search) != -1:
+                matches.append(f'{index}/{arch}/{name}')
+    print("Please type the index of the package you wish to download")
+    for i, match in enumerate(matches):
+        print(f'[{i}] {match}')
+    index = input("Package index: ")
+    download(matches[int(index)])
 
